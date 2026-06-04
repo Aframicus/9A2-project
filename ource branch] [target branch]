@@ -1,0 +1,26 @@
+[33mcommit ed7bab06b6a2671f855d1b7276d06f4bd9498467[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Habib Zeerak <habib.zeerak@student.uva.nl>
+Date:   Tue Jun 2 11:42:13 2026 +0200
+
+    Initialize project template from the-turing-way/reproducible-project-template
+
+ create mode 100644 .all-contributorsrc
+ create mode 100644 .github/ISSUE_TEMPLATE/ISSUE_TEMPLATE.md
+ create mode 100644 .gitignore
+ create mode 100644 CHANGES.md
+ create mode 100644 CODE_OF_CONDUCT.md
+ create mode 100644 CONTRIBUTING.md
+ create mode 100644 LICENSE.md
+ create mode 100644 README.md
+ create mode 100644 assets/README.md
+ create mode 100644 assets/use-this-repo.png
+ create mode 100644 data/processed/placeholder.txt
+ create mode 100644 data/raw/placeholder.txt
+ create mode 100644 models/placeholder.txt
+ create mode 100644 project-management/README.md
+ create mode 100644 project-management/communications/README.md
+ create mode 100644 project-management/meetings.txt
+ create mode 100644 project-management/reports/README.md
+ create mode 100644 src/data/placeholder.txt
+ create mode 100644 src/models/placeholder.txt
+ create mode 100644 src/visualisation/placeholder.txt
