@@ -6,3 +6,4 @@ medmnist
 torch
 torchvision
 matplotlib
+utils
