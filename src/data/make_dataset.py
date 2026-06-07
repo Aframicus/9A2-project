@@ -2,13 +2,14 @@
 import pickle
 import random
 import sys
+import matplotlib.pyplot as plt
 import medmnist
 import numpy as np
 import torch
 import torch.utils.data as data
 from medmnist import INFO
-import dataset_without_pytorch
-from dataset_without_pytorch import get_loader
+from torchvision import transforms
+
 
 
 print("---------------------- Import, preprocess and load data ----------------------")
@@ -16,71 +17,65 @@ print("---------------------- Import, preprocess and load data -----------------
 data_flag = 'pneumoniamnist'
 download = True
 
-NUM_EPOCHS = 3
 BATCH_SIZE = 128
-lr = 0.001
 
 info = INFO[data_flag]
 task = info['task']
-n_channels = info['n_channels']
-n_classes = len(info['label'])
 DataClass = getattr(medmnist, info['python_class'])
 
-# Load data
-train_dataset = DataClass(split='train', download=download)
-val_dataset = DataClass(split='val', download=download)
-test_dataset = DataClass(split='test', download=download)
+n_channels = info['n_channels']
+n_classes = len(info['label'])
 
+print("Loading the PneumoniaMNIST splits")
+
+# Load the raw data
+train_dataset_raw = DataClass(split='train', download=download)
+val_dataset_raw = DataClass(split='val', download=download)
+test_dataset_raw = DataClass(split='test', download=download)
+
+print("Raw data loaded successfully!")
+
+#Labels and images are stored in the .imgs and .labels attributes of the dataset objects. We normalise the images to [0.0, 1.0] by dividing by 255.0, since the original pixel values are in the range [0, 255].
+train_images = train_dataset_raw.imgs / 255.0    
+train_labels = train_dataset_raw.labels
+ 
+val_images   = val_dataset_raw.imgs   / 255.0
+val_labels   = val_dataset_raw.labels
+ 
+test_images  = test_dataset_raw.imgs  / 255.0
+test_labels  = test_dataset_raw.labels
+
+#Preprocessing, here we transform the data into a tensor. Then we normalize it using a mean of 0.5 and standard deviation of 0.5 This is more usefull
+data_transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[.5], std=[.5])
+])
+
+# Load transformed data
+train_dataset_transformed = DataClass(split='train', download=download, transform=data_transform)
+val_dataset_transformed = DataClass(split='val', download=download, transform=data_transform)
+test_dataset_transformed = DataClass(split='test', download=download, transform=data_transform)
 
 # Create data loaders
-train_loader = get_loader(train_dataset, batch_size=BATCH_SIZE)
-val_loader = get_loader(val_dataset, batch_size=2 * BATCH_SIZE)
-test_loader = get_loader(test_dataset, batch_size=2 * BATCH_SIZE)
+train_loader = data.DataLoader(dataset=train_dataset_transformed, batch_size=BATCH_SIZE, shuffle=True)
+val_loader = data.DataLoader(dataset=val_dataset_transformed, batch_size=2*BATCH_SIZE, shuffle=False)
+test_loader = data.DataLoader(dataset=test_dataset_transformed, batch_size=2*BATCH_SIZE, shuffle=False)
 
-#Show some images
-# img = train_dataset.montage(length=10)
-# img.show()
+print("Transformed data loaded successfully!")
 
-# Check the shape of the data
-for x, y in train_loader:
-    print(x.shape, y.shape)
-    break
+# Make a montage from raw images (before normalization)
+images = train_dataset_raw.imgs          # shape: (N, 28, 28)
+num = 64                           # how many images to show
+rows, cols = 8, 8
 
-# # Get out images and information
-# X_train = train_loader.dataset.imgs
-# y_train = np.reshape(train_loader.dataset.labels, (len(train_loader.dataset.labels)))
-# X_val = val_loader.dataset.imgs
-# y_val = np.reshape(val_loader.dataset.labels, (len(val_loader.dataset.labels)))
-# X_test = test_loader.dataset.imgs
-# y_test = np.reshape(test_loader.dataset.labels, (len(test_loader.dataset.labels)))
+fig, axes = plt.subplots(rows, cols, figsize=(cols, rows))
 
-# print("---------- Store data ---------- ")
+for i, ax in enumerate(axes.flat):
+    if i < num:
+        ax.imshow(images[i], cmap="gray")
+    ax.axis("off")
 
-# file_name1 = 'pneumoniamnist_X_train.pickle'
-# file_name2 = 'pneumoniamnist_y_train.pickle'
-# file_name3 = 'pneumoniamnist_X_val.pickle'
-# file_name4 = 'pneumoniamnist_y_val.pickle'
-# file_name5 = 'pneumoniamnist_X_test.pickle'
-# file_name6 = 'pneumoniamnist_y_test.pickle'
-
-
-# with open(file_name1, 'wb') as f:
-#     pickle.dump(np.array(X_train), f, pickle.HIGHEST_PROTOCOL)
-
-# with open(file_name2, 'wb') as f:
-#     pickle.dump(y_train, f, pickle.HIGHEST_PROTOCOL)
-
-# with open(file_name3, 'wb') as f:
-#     pickle.dump(X_val, f, pickle.HIGHEST_PROTOCOL)
-
-# with open(file_name4, 'wb') as f:
-#     pickle.dump(y_val, f, pickle.HIGHEST_PROTOCOL)
-
-# with open(file_name5, 'wb') as f:
-#     pickle.dump(X_test, f, pickle.HIGHEST_PROTOCOL)
-
-# with open(file_name6, 'wb') as f:
-#     pickle.dump(y_test, f, pickle.HIGHEST_PROTOCOL)
-
-
-# print("---------- End ----------")
+plt.tight_layout()
+plt.savefig("pneumonia_montage.png", dpi=200, bbox_inches="tight")
+plt.close()
+print("Saved pneumonia_montage.png")
