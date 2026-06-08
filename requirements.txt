@@ -12,3 +12,4 @@ torch
 torchvision
 matplotlib
 utils
+seaborn
