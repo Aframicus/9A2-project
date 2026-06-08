@@ -20,21 +20,29 @@ y_train = np.asarray(train_labels).reshape(-1)
 y_val = np.asarray(val_labels).reshape(-1)
 y_test = np.asarray(test_labels).reshape(-1)
 
-print("---------------------- Determining best k value for KNN: -----------------------")
+print("---------------------- Determining hyperparameters for KNN: -----------------------")
 model = KNeighborsClassifier()
-k_values = list(range(1, 31)) # From 1 to 30
-hyperparameter_space = {'n_neighbors':k_values}
+k_values = list(range(1, 31))  # From 1 to 30
+hyperparameter_space = {
+	'n_neighbors': k_values,
+	'weights': ['uniform', 'distance'],
+	'metric': ['euclidean', 'manhattan', 'minkowski']
+}
 
 gs = GridSearchCV(model, param_grid=hyperparameter_space,
                   scoring='accuracy', cv=5)
 
 gs.fit(X_train, y_train)
 
-print("Best value of K: ", gs.best_params_)
-print("Mean CV accuracy of best K-value: ", gs.best_score_)
+print("Best hyperparameters: ", gs.best_params_)
+print("Mean CV accuracy of best hyperparameters: ", gs.best_score_)
 
 print("---------------------- Train model ----------------------")
-model = KNeighborsClassifier(n_neighbors=gs.best_params_['n_neighbors'])
+model = KNeighborsClassifier(
+	n_neighbors=gs.best_params_['n_neighbors'],
+	weights=gs.best_params_['weights'],
+	metric=gs.best_params_['metric']
+)
 model.fit(X_train, y_train)
 print("Model trained successfully!")
 
