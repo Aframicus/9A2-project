@@ -5,6 +5,7 @@ import sys
 import matplotlib.pyplot as plt
 import medmnist
 import numpy as np
+import seaborn as sns
 import torch
 import torch.utils.data as data
 from medmnist import INFO
@@ -51,6 +52,7 @@ data_transform = transforms.Compose([
     transforms.Normalize(mean=[.5], std=[.5])
 ])
 
+# Transform the raw data into tensors and normalise them. We will use these transformed datasets for training and evaluation of our deep learning models.
 # Load transformed data
 train_dataset_transformed = DataClass(split='train', download=download, transform=data_transform)
 val_dataset_transformed = DataClass(split='val', download=download, transform=data_transform)
@@ -63,19 +65,41 @@ test_loader = data.DataLoader(dataset=test_dataset_transformed, batch_size=2*BAT
 
 print("Transformed data loaded successfully!")
 
-# Make a montage from raw images (before normalization)
-images = train_dataset_raw.imgs          # shape: (N, 28, 28)
-num = 64                           # how many images to show
-rows, cols = 8, 8
 
-fig, axes = plt.subplots(rows, cols, figsize=(cols, rows))
+#show some samples from the raw and transformed datasets to verify that the transformations are correct. We will display a grid of images with their corresponding labels for both the raw and transformed datasets.
+def show_samples(dataset, num_samples=16):
+    images = dataset.imgs
+    labels = dataset.labels
+    plt.figure(figsize=(8, 8))
+    for i in range(num_samples):
+        plt.subplot(4, 4, i + 1)
+        plt.imshow(images[i], cmap='gray')
+        plt.title(f"Label: {labels[i][0]}")
+        plt.axis('off')
+    plt.tight_layout()
+    plt.show()
+# show_samples(train_dataset_transformed)
+# show_samples(train_dataset_raw)
 
-for i, ax in enumerate(axes.flat):
-    if i < num:
-        ax.imshow(images[i], cmap="gray")
-    ax.axis("off")
+#Class distribution in the training set
+labels = (labels for labels in train_labels)
+sns.countplot(x=list(labels))
+plt.title("Class Distribution in the Training Set")
+plt.show()
 
-plt.tight_layout()
-plt.savefig("pneumonia_montage.png", dpi=200, bbox_inches="tight")
-plt.close()
-print("Saved pneumonia_montage.png")
+# # Make a montage from raw images (before normalization)
+# images = train_dataset_raw.imgs          # shape: (N, 28, 28)
+# num = 64                           # how many images to show
+# rows, cols = 8, 8
+
+# fig, axes = plt.subplots(rows, cols, figsize=(cols, rows))
+
+# for i, ax in enumerate(axes.flat):
+#     if i < num:
+#         ax.imshow(images[i], cmap="gray")
+#     ax.axis("off")
+
+# plt.tight_layout()
+# plt.savefig("pneumonia_montage.png", dpi=200, bbox_inches="tight")
+# plt.close()
+# print("Saved pneumonia_montage.png")
