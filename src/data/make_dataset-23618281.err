@@ -1,0 +1,45 @@
+Traceback (most recent call last):
+  File "/home/scur0318/venv/lib/python3.12/site-packages/seaborn/_base.py", line 1768, in categorical_order
+    order = vector.cat.categories
+            ^^^^^^^^^^
+  File "/home/scur0318/venv/lib/python3.12/site-packages/pandas/core/generic.py", line 6206, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/scur0318/venv/lib/python3.12/site-packages/pandas/core/accessor.py", line 230, in __get__
+    return self._accessor(obj)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/scur0318/venv/lib/python3.12/site-packages/pandas/core/arrays/categorical.py", line 2978, in __init__
+    self._validate(data)
+  File "/home/scur0318/venv/lib/python3.12/site-packages/pandas/core/arrays/categorical.py", line 2987, in _validate
+    raise AttributeError("Can only use .cat accessor with a 'category' dtype")
+AttributeError: Can only use .cat accessor with a 'category' dtype. Did you mean: 'at'?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/gpfs/home5/scur0318/9A2-project/src/data/make_dataset.py", line 86, in <module>
+    sns.countplot(x=list(labels))
+  File "/home/scur0318/venv/lib/python3.12/site-packages/seaborn/categorical.py", line 2631, in countplot
+    p = _CategoricalAggPlotter(
+        ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/scur0318/venv/lib/python3.12/site-packages/seaborn/categorical.py", line 131, in __init__
+    cat_levels = categorical_order(self.plot_data[self.orient], order)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/scur0318/venv/lib/python3.12/site-packages/seaborn/_base.py", line 1771, in categorical_order
+    order = pd.Series(vector).unique()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/scur0318/venv/lib/python3.12/site-packages/pandas/core/series.py", line 2228, in unique
+    return super().unique()
+           ^^^^^^^^^^^^^^^^
+  File "/home/scur0318/venv/lib/python3.12/site-packages/pandas/core/base.py", line 1159, in unique
+    result = algorithms.unique1d(values)  # type: ignore[assignment]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/scur0318/venv/lib/python3.12/site-packages/pandas/core/algorithms.py", line 433, in unique
+    return unique_with_mask(values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/scur0318/venv/lib/python3.12/site-packages/pandas/core/algorithms.py", line 476, in unique_with_mask
+    uniques = table.unique(values)
+              ^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7840, in pandas._libs.hashtable.PyObjectHashTable.unique
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7783, in pandas._libs.hashtable.PyObjectHashTable._unique
+TypeError: unhashable type: 'numpy.ndarray'

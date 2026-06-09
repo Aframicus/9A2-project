@@ -1,0 +1,30 @@
+=== SLURM job started ===
+Job ID: 23618077
+Hostname: tcn250.local.snellius.surf.nl
+Initial PWD: /gpfs/home5/scur0318/9A2-project/src/data
+After module load, PWD: /gpfs/home5/scur0318/9A2-project/src/data
+After activating venv, which python: /home/scur0318/venv/bin/python
+After cd, PWD: /home/scur0318/9A2-project/src/data
+Directory listing:
+make_dataset-23617732.out
+make_dataset-23617789.out
+make_dataset-23617875.out
+make_dataset-23617888.out
+make_dataset-23617918.err
+make_dataset-23617918.out
+make_dataset-23617958.err
+make_dataset-23617958.out
+make_dataset-23618007.err
+make_dataset-23618007.out
+make_dataset-23618012.err
+make_dataset-23618012.out
+make_dataset-23618037.err
+make_dataset-23618037.out
+make_dataset-23618071.err
+make_dataset-23618071.out
+make_dataset-23618077.err
+make_dataset-23618077.out
+make_dataset.py
+make_dataset.slurm
+requirements.txt
+Running Python script...
