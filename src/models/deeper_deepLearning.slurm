@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=pneumonia_baseline
+#SBATCH --job-name=deeper_deepLearning
 #SBATCH --partition=rome
 #SBATCH --time=01:00:00
 #SBATCH --ntasks=1
@@ -13,4 +13,4 @@ module load Python/3.12.3-GCCcore-13.3.0
 
 source ~/venv/bin/activate
 cd ~/9A2-project/src/models
-python -u pneumonia_baseline.py
+python -u deeper_deepLearning.py
