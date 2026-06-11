@@ -4,13 +4,16 @@ import numpy as np
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.model_selection import GridSearchCV
+import matplotlib.pyplot as plt
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
 	sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.data.make_dataset import train_images, train_labels, val_images, val_labels, test_images, test_labels
+from src.data.make_dataset import load_pneumonia_mnist_arrays
 print("---------------------- Load data ----------------------")
+
+train_images, train_labels, val_images, val_labels, test_images, test_labels = load_pneumonia_mnist_arrays()
 
 X_train = train_images.reshape(train_images.shape[0], -1)
 X_val = val_images.reshape(val_images.shape[0], -1)
