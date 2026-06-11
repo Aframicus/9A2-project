@@ -8,13 +8,13 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 import matplotlib.pyplot as plt
 
 # -------------------------------------------------------------------
-# Project imports: make sure this matches your structure
+# Project imports
 # -------------------------------------------------------------------
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.data.make_dataset import train_loader, val_loader, test_loader
+from src.data.make_dataset import train_loader, val_loader, test_loader #later on, delete these and import the functions
 
 # -------------------------------------------------------------------
 # Reproducibility & device
@@ -28,16 +28,16 @@ print("Using device:", device)
 # -------------------------------------------------------------------
 # Deeper CNN architecture
 # -------------------------------------------------------------------
-class DeeperCNN(nn.Module):
-    def __init__(self, num_classes=2):
-        super(DeeperCNN, self).__init__()
+class DeeperCNN(nn.Module): #creating a new neural network type from the nn module
+    def __init__(self, num_classes=2): #there are two classes, namely present and absent of pneumonia
+        super(DeeperCNN, self).__init__() #requirement to call the class of an neural network
 
         # Block 1: 1x28x28 -> 32x14x14
         self.block1 = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3, padding=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2)
+            nn.Conv2d(1, 32, kernel_size=3, padding=1), #defines the kernel_size, with padding of 1 which spatiality. The 1 is the amount of channels in and 32 for channels out.
+            nn.BatchNorm2d(32), #batchnormalisation of 32 for stable training
+            nn.ReLU(inplace=True), #uses ReLu
+            nn.MaxPool2d(kernel_size=2, stride=2) #halves the hight and width
         )
 
         # Block 2: 32x14x14 -> 64x7x7
@@ -46,7 +46,7 @@ class DeeperCNN(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2)
-        )
+        ) #Almost the same explanation as above in block 1, but in the second block, it converges 32 to 64 channels. The batch is also 64.
 
         # Block 3: 64x7x7 -> 128x3x3
         self.block3 = nn.Sequential(
@@ -54,15 +54,15 @@ class DeeperCNN(nn.Module):
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2)  # 7 -> 3
-        )
+        ) #Also the same explanation as above, but with 64 in channels and 128 outchannels. Here, the batch is also 128.
 
         # Fully connected classifier
         self.fc = nn.Sequential(
-            nn.Linear(128 * 3 * 3, 256),
+            nn.Linear(128 * 3 * 3, 256), #the in channels 
             nn.ReLU(inplace=True),
-            nn.Dropout(p=0.5),
-            nn.Linear(256, num_classes)
-        )
+            nn.Dropout(p=0.5), #During training, aroung half of all the neurons are deactivates
+            nn.Linear(256, num_classes) #last layer will be placed from 256 to 2 since we have binairy outcomes
+        )  #docs.pytorch.org/docs/2.12/generated/torch.nn.Conv2d.html
 
     def forward(self, x):
         x = self.block1(x)         # (B, 32, 14, 14)
@@ -71,16 +71,91 @@ class DeeperCNN(nn.Module):
         x = x.view(x.size(0), -1)  # Flatten: (B, 128*3*3)
         x = self.fc(x)             # (B, num_classes)
         return x
+    #pushes the image through multiple layers and at the end it is flattend to a tensor. At the self.fc(x) it is passed through a fully connected layer. Then it is returned as a logits.
 
 # -------------------------------------------------------------------
-# Instantiate model, loss, optimizer
+# Hyperparameter search
+# -------------------------------------------------------------------
+def train_for_search(lr, weight_decay, num_epochs_search=5):
+    """
+    Train a DeeperCNN with a given lr and weight_decay for a limited number of 
+    epochs and return the best validation accuracy.
+    """
+    model = DeeperCNN(num_classes=2).to(device) #Creates a new model
+    criterion = nn.CrossEntropyLoss() #the criteria is set on CrossEntropyLoss
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay) #These are the optemizer values put in the new model.
+
+    best_val_acc = 0.0
+
+    for epoch in range(num_epochs_search):
+        # ----------------- Train -----------------
+        model.train() #puts the model in training mode
+        for images, labels in train_loader: #loops over batches of training data
+            images = images.to(device)
+            labels = labels.squeeze(1).to(device).long()
+
+            optimizer.zero_grad()
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+        # ----------------- Validate -----------------
+        model.eval()
+        all_val_preds = []
+        all_val_labels = []
+
+        with torch.no_grad():
+            for images, labels in val_loader:
+                images = images.to(device)
+                labels = labels.squeeze(1).to(device).long()
+
+                outputs = model(images)
+                _, preds = torch.max(outputs, 1)
+                all_val_preds.extend(preds.cpu().numpy())
+                all_val_labels.extend(labels.cpu().numpy())
+
+        val_acc = accuracy_score(all_val_labels, all_val_preds)
+        best_val_acc = max(best_val_acc, val_acc)
+
+    return best_val_acc
+
+# Define the hyperparametermatrix
+lr_values = [1e-4, 5e-4, 1e-3]
+weight_decay_values = [0.0, 1e-4, 1e-3]
+
+best_val_acc_overall = 0.0
+best_params = None
+
+print("---------------------- Hyperparameter search (DeeperCNN) ----------------------")
+for lr in lr_values:
+    for wd in weight_decay_values:
+        print(f"Try lr={lr}, weight_decay={wd}")
+        val_acc = train_for_search(lr, wd, num_epochs_search=5)
+        print(f"   -> best val accuracy during search: {val_acc:.4f}")
+
+        if val_acc > best_val_acc_overall:
+            best_val_acc_overall = val_acc
+            best_params = {"lr": lr, "weight_decay": wd}
+
+print("Best hyperparameters:", best_params)
+print("Best validation accuracy (search):", best_val_acc_overall)
+
+# -------------------------------------------------------------------
+# Instantiate final model, loss, optimizer with best hyperparameters
 # -------------------------------------------------------------------
 model = DeeperCNN(num_classes=2).to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
+optimizer = optim.Adam(
+    model.parameters(),
+    lr=best_params["lr"],
+    weight_decay=best_params["weight_decay"]
+)
+
+print(f"Train final model with lr={best_params['lr']}, weight_decay={best_params['weight_decay']}")
 
 # -------------------------------------------------------------------
-# Training loop with validation
+# Complete training with chosen hyperparameters
 # -------------------------------------------------------------------
 num_epochs = 10
 train_losses = []
@@ -145,28 +220,18 @@ for epoch in range(num_epochs):
           f"Val Loss: {epoch_val_loss:.4f}, Val Acc: {epoch_val_acc:.4f}")
 
 # -------------------------------------------------------------------
-# Plot training & validation loss (optional)
+# LOSS-plot (training & validation)
 # -------------------------------------------------------------------
-plt.figure(figsize=(10, 4))
-plt.subplot(1, 2, 1)
-plt.plot(train_losses, label="Train")
-plt.plot(val_losses, label="Val")
+plt.figure(figsize=(6, 4))
+plt.plot(range(1, num_epochs + 1), train_losses, marker='o', label="Train loss")
+plt.plot(range(1, num_epochs + 1), val_losses, marker='o', label="Val loss")
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
-plt.title("Loss")
+plt.title("Deeper CNN - Training/Validation Loss")
 plt.legend()
 plt.grid(True)
-
-plt.subplot(1, 2, 2)
-plt.plot(train_accuracies, label="Train")
-plt.plot(val_accuracies, label="Val")
-plt.xlabel("Epoch")
-plt.ylabel("Accuracy")
-plt.title("Accuracy")
-plt.legend()
-plt.grid(True)
-
 plt.tight_layout()
+plt.savefig("deeper_cnn_loss.png", dpi=200, bbox_inches="tight")
 plt.show()
 
 # -------------------------------------------------------------------
@@ -191,7 +256,7 @@ print("Classification Report:\n", classification_report(all_test_labels, all_tes
 print("Confusion Matrix:\n", confusion_matrix(all_test_labels, all_test_preds))
 
 # -------------------------------------------------------------------
-# Save model
+# Save model for later usages such as predictions with new datasets
 # -------------------------------------------------------------------
 torch.save(model.state_dict(), "pneumonia_deeper_cnn.pth")
 print("Saved model to pneumonia_deeper_cnn.pth")

@@ -1,0 +1,25 @@
+---------------------- Import, preprocess and load data ----------------------
+Loading the PneumoniaMNIST splits
+Raw data loaded successfully!
+Transformed data loaded successfully!
+---------------------- Load data ----------------------
+---------------------- Determining hyperparameters for KNN: -----------------------
+Best hyperparameters:  {'metric': 'manhattan', 'n_neighbors': 3, 'weights': 'uniform'}
+Mean CV accuracy of best hyperparameters:  0.9483855319475374
+---------------------- Train model ----------------------
+Model trained successfully!
+---------------------- Validate model ----------------------
+Validation accuracy: 0.9599
+---------------------- Evaluate model ----------------------
+Test accuracy: 0.8333
+              precision    recall  f1-score   support
+
+           0     0.9221    0.6068    0.7320       234
+           1     0.8043    0.9692    0.8791       390
+
+    accuracy                         0.8333       624
+   macro avg     0.8632    0.7880    0.8055       624
+weighted avg     0.8484    0.8333    0.8239       624
+
+[[142  92]
+ [ 12 378]]
