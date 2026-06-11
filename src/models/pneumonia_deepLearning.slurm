@@ -13,4 +13,4 @@ module load Python/3.12.3-GCCcore-13.3.0
 
 source ~/venv/bin/activate
 cd ~/9A2-project/src/models
-python -u pnuemonia_deepLearning.py
+python -u pneumonia_deepLearning.py
