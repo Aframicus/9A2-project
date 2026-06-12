@@ -85,58 +85,58 @@ def train_for_search(lr, weight_decay, num_epochs_search=5):
     criterion = nn.CrossEntropyLoss() #the criteria is set on CrossEntropyLoss
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay) #These are the optemizer values put in the new model.
 
-    best_val_acc = 0.0
+    best_val_acc = 0.0 #begin value
 
     for epoch in range(num_epochs_search):
         # ----------------- Train -----------------
         model.train() #puts the model in training mode
         for images, labels in train_loader: #loops over batches of training data
             images = images.to(device)
-            labels = labels.squeeze(1).to(device).long()
+            labels = labels.squeeze(1).to(device).long() #.squeeze(1) is used to avoid dimension error
 
             optimizer.zero_grad()
-            outputs = model(images)
+            outputs = model(images) #safe the images to the device where the model is also safed
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
 
         # ----------------- Validate -----------------
-        model.eval()
-        all_val_preds = []
-        all_val_labels = []
+        model.eval() #putting the model in validation modus
+        all_val_preds = [] #empty container/array
+        all_val_labels = [] #empty container/array
 
-        with torch.no_grad():
+        with torch.no_grad(): #during the validation, the gradients are not calculated for easiness and speed
             for images, labels in val_loader:
                 images = images.to(device)
-                labels = labels.squeeze(1).to(device).long()
+                labels = labels.squeeze(1).to(device).long() #squeeze(1) removes a dimension which isn't used
 
-                outputs = model(images)
-                _, preds = torch.max(outputs, 1)
-                all_val_preds.extend(preds.cpu().numpy())
-                all_val_labels.extend(labels.cpu().numpy())
+                outputs = model(images) #foward pass through the model, logits is used to classify each image in the batch
+                _, preds = torch.max(outputs, 1)  #gives the prediction of the maximum value for each row
+                all_val_preds.extend(preds.cpu().numpy()) #adds the prediction to the list as a numpy.
+                all_val_labels.extend(labels.cpu().numpy()) #adds the label to the list as a numpy.
 
-        val_acc = accuracy_score(all_val_labels, all_val_preds)
-        best_val_acc = max(best_val_acc, val_acc)
+        val_acc = accuracy_score(all_val_labels, all_val_preds) #calculates the accuracy scores between the all_val_labels en all_val_preds
+        best_val_acc = max(best_val_acc, val_acc) #picks the maximum value
 
     return best_val_acc
 
 # Define the hyperparametermatrix
-lr_values = [1e-4, 5e-4, 1e-3]
-weight_decay_values = [0.0, 1e-4, 1e-3]
+lr_values = [1e-4, 5e-4, 1e-3] #A list of learning rates to loop over
+weight_decay_values = [0.0, 1e-4, 1e-3] #a list of penalties for the weights to loop over
 
-best_val_acc_overall = 0.0
-best_params = None
+best_val_acc_overall = 0.0 #initial best validation score
+best_params = None #empty definition to initialize the container of best parameters
 
 print("---------------------- Hyperparameter search (DeeperCNN) ----------------------")
-for lr in lr_values:
-    for wd in weight_decay_values:
-        print(f"Try lr={lr}, weight_decay={wd}")
-        val_acc = train_for_search(lr, wd, num_epochs_search=5)
-        print(f"   -> best val accuracy during search: {val_acc:.4f}")
+for lr in lr_values: #loop over learning rate
+    for wd in weight_decay_values: #loop over the weight penalty
+        print(f"Try lr={lr}, weight_decay={wd}") #print statement of which combination of lr and weight decay is currently assessed
+        val_acc = train_for_search(lr, wd, num_epochs_search=5) #training statement
+        print(f"   -> best val accuracy during search: {val_acc:.4f}") #print statement
 
-        if val_acc > best_val_acc_overall:
-            best_val_acc_overall = val_acc
-            best_params = {"lr": lr, "weight_decay": wd}
+        if val_acc > best_val_acc_overall: #if statement to replace the best validation accuracy score.
+            best_val_acc_overall = val_acc #if yes
+            best_params = {"lr": lr, "weight_decay": wd} #saving statement
 
 print("Best hyperparameters:", best_params)
 print("Best validation accuracy (search):", best_val_acc_overall)
