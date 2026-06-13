@@ -12,11 +12,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.data.make_dataset import train_loader, val_loader, test_loader
+from src.data.make_dataset import load_pneumonia_mnist_loaders
 
 #Setting seed for reproducibility
 torch.manual_seed(42)
+np.random.seed(42)
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Using device:", device)
+
+# -------------------------------------------------------------------
+# Load data
+# -------------------------------------------------------------------
+train_loader, val_loader, test_loader = load_pneumonia_mnist_loaders()
 # Define the CNN architecture
 class CNNModel(nn.Module):
     def __init__(self):

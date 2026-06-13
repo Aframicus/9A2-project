@@ -11,7 +11,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
 	sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.data.make_dataset import train_images, train_labels, val_images, val_labels, test_images, test_labels
+from src.data.make_dataset import load_pneumonia_mnist_arrays
+
+train_images, train_labels, val_images, val_labels, test_images, test_labels = load_pneumonia_mnist_arrays()
 print("---------------------- Load data ----------------------")
 
 X_train = train_images.reshape(train_images.shape[0], -1)
@@ -62,7 +64,7 @@ plt.ylabel("Loss (1 - validation accuracy)")
 plt.title("KNN validation loss vs k")
 plt.grid(True)
 plt.tight_layout()
-plt.savefig("knn_validation_loss.png", dpi=200, bbox_inches="tight")
+plt.savefig(PROJECT_ROOT / "src" / "visualisation" / "knn_validation_loss.png", dpi=200, bbox_inches="tight")
 plt.show()
 
 print("---------------------- Train model ----------------------")

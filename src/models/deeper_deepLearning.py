@@ -14,7 +14,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.data.make_dataset import train_loader, val_loader, test_loader #later on, delete these and import the functions
+from src.data.make_dataset import load_pneumonia_mnist_loaders 
+
+# -------------------------------------------------------------------
+# Load data
+# -------------------------------------------------------------------
+train_loader, val_loader, test_loader = load_pneumonia_mnist_loaders()
 
 # -------------------------------------------------------------------
 # Reproducibility & device
