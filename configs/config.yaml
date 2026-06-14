@@ -11,7 +11,7 @@ data:
 training:
   num_epochs: 10
   num_epochs_search: 5
-  checkpoint_every_n_epochs: 5    
+  checkpoint_every_n_epochs: 1
 
 hyperparameter_search:
   lr_values:           [0.0001, 0.0005, 0.001]

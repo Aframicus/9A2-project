@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import os
 import numpy as np
 import torch
 import torch.nn as nn
@@ -7,28 +8,40 @@ import torch.optim as optim
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 
-# -------------------------------------------------------------------
-# Project imports
-# -------------------------------------------------------------------
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.data.make_dataset import load_pneumonia_mnist_loaders 
-
 # -------------------------------------------------------------------
-# Load data
+# Project imports
 # -------------------------------------------------------------------
-train_loader, val_loader, test_loader = load_pneumonia_mnist_loaders()
+from src.data.make_dataset import load_pneumonia_mnist_loaders
+from src.utils import load_config, set_seed, get_experiment_dir, save_checkpoint, save_best_model, load_checkpoint
 
 # -------------------------------------------------------------------
 # Reproducibility & device
 # -------------------------------------------------------------------
-torch.manual_seed(42)
-np.random.seed(42)
-
+cfg = load_config()
+set_seed(cfg["seed"])
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
+
+search_cfg          = cfg["hyperparameter_search"]
+lr_values           = search_cfg["lr_values"]
+weight_decay_values = search_cfg["weight_decay_values"]
+num_epochs_search   = cfg["training"]["num_epochs_search"]
+
+# -------------------------------------------------------------------
+# Experiment directory
+# -------------------------------------------------------------------
+# change run_name per experiment
+run_dir = get_experiment_dir(cfg["paths"]["experiments"], run_name="run_001")
+print(f"Experiment directory: {run_dir}")
+# -------------------------------------------------------------------
+# Load data
+# -------------------------------------------------------------------
+batch_size = cfg["data"]["batch_size"]
+train_loader, val_loader, test_loader = load_pneumonia_mnist_loaders(batch_size=batch_size)
 
 # -------------------------------------------------------------------
 # Deeper CNN architecture
@@ -58,7 +71,7 @@ class DeeperCNN(nn.Module): #creating a new neural network type from the nn modu
             nn.Conv2d(64, 128, kernel_size=3, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2)  # 7 -> 3
+            nn.MaxPool2d(kernel_size=2, stride=2) 
         ) #Also the same explanation as above, but with 64 in channels and 128 outchannels. Here, the batch is also 128.
 
         # Fully connected classifier
@@ -89,7 +102,6 @@ def train_for_search(lr, weight_decay, num_epochs_search=5):
     model = DeeperCNN(num_classes=2).to(device) #Creates a new model
     criterion = nn.CrossEntropyLoss() #the criteria is set on CrossEntropyLoss
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay) #These are the optemizer values put in the new model.
-
     best_val_acc = 0.0
 
     for epoch in range(num_epochs_search):
@@ -98,13 +110,11 @@ def train_for_search(lr, weight_decay, num_epochs_search=5):
         for images, labels in train_loader: #loops over batches of training data
             images = images.to(device)
             labels = labels.squeeze(1).to(device).long()
-
             optimizer.zero_grad()
             outputs = model(images)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-
         # ----------------- Validate -----------------
         model.eval()
         all_val_preds = []
@@ -114,7 +124,6 @@ def train_for_search(lr, weight_decay, num_epochs_search=5):
             for images, labels in val_loader:
                 images = images.to(device)
                 labels = labels.squeeze(1).to(device).long()
-
                 outputs = model(images)
                 _, preds = torch.max(outputs, 1)
                 all_val_preds.extend(preds.cpu().numpy())
@@ -125,10 +134,6 @@ def train_for_search(lr, weight_decay, num_epochs_search=5):
 
     return best_val_acc
 
-# Define the hyperparametermatrix
-lr_values = [1e-4, 5e-4, 1e-3]
-weight_decay_values = [0.0, 1e-4, 1e-3]
-
 best_val_acc_overall = 0.0
 best_params = None
 
@@ -138,7 +143,6 @@ for lr in lr_values:
         print(f"Try lr={lr}, weight_decay={wd}")
         val_acc = train_for_search(lr, wd, num_epochs_search=5)
         print(f"   -> best val accuracy during search: {val_acc:.4f}")
-
         if val_acc > best_val_acc_overall:
             best_val_acc_overall = val_acc
             best_params = {"lr": lr, "weight_decay": wd}
@@ -162,37 +166,36 @@ print(f"Train final model with lr={best_params['lr']}, weight_decay={best_params
 # -------------------------------------------------------------------
 # Complete training with chosen hyperparameters
 # -------------------------------------------------------------------
-num_epochs = 10
-train_losses = []
-val_losses = []
-train_accuracies = []
-val_accuracies = []
+num_epochs       = cfg["training"]["num_epochs"]                   
+checkpoint_every = cfg["training"]["checkpoint_every_n_epochs"]    
 
-for epoch in range(num_epochs):
-    # ----------------- Train -----------------
+train_losses, val_losses= [], []
+train_accuracies, val_accuracies = [], []
+best_val_acc = 0.0
+
+print(f"Train final model with lr={best_params['lr']}, weight_decay={best_params['weight_decay']}")
+
+for epoch in range(1, num_epochs + 1):
+    # ── Train ──
     model.train()
     running_loss = 0.0
-    all_train_preds = []
-    all_train_labels = []
+    all_train_preds, all_train_labels = [], []
 
     for images, labels in train_loader:
         images = images.to(device)
         labels = labels.squeeze(1).to(device).long()
-
         optimizer.zero_grad()
         outputs = model(images)
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
-
         running_loss += loss.item() * images.size(0)
-
         _, preds = torch.max(outputs, 1)
         all_train_preds.extend(preds.cpu().numpy())
         all_train_labels.extend(labels.cpu().numpy())
 
     epoch_train_loss = running_loss / len(train_loader.dataset)
-    epoch_train_acc = accuracy_score(all_train_labels, all_train_preds)
+    epoch_train_acc  = accuracy_score(all_train_labels, all_train_preds)
     train_losses.append(epoch_train_loss)
     train_accuracies.append(epoch_train_acc)
 
@@ -206,12 +209,11 @@ for epoch in range(num_epochs):
         for images, labels in val_loader:
             images = images.to(device)
             labels = labels.squeeze(1).to(device).long()
-
             outputs = model(images)
-            loss = criterion(outputs, labels)
-            running_val_loss += loss.item() * images.size(0)
 
+            running_val_loss += criterion(outputs, labels).item() * images.size(0)
             _, preds = torch.max(outputs, 1)
+
             all_val_preds.extend(preds.cpu().numpy())
             all_val_labels.extend(labels.cpu().numpy())
 
@@ -224,6 +226,16 @@ for epoch in range(num_epochs):
           f"Train Loss: {epoch_train_loss:.4f}, Train Acc: {epoch_train_acc:.4f} | "
           f"Val Loss: {epoch_val_loss:.4f}, Val Acc: {epoch_val_acc:.4f}")
 
+# if validation accuracy improved, save best model checkpoint
+    if epoch_val_acc > best_val_acc:
+        best_val_acc = epoch_val_acc
+        save_best_model(run_dir, epoch, model, best_val_acc)
+# periodic checkpointing
+    if epoch % checkpoint_every == 0:
+        save_checkpoint(
+            run_dir, epoch, model, optimizer,
+            train_losses, val_losses, train_accuracies, val_accuracies,
+        )
 # -------------------------------------------------------------------
 # LOSS-plot (training & validation)
 # -------------------------------------------------------------------
@@ -240,19 +252,19 @@ plt.savefig("deeper_cnn_loss.png", dpi=200, bbox_inches="tight")
 plt.show()
 
 # -------------------------------------------------------------------
-# Evaluate on test set
+# Load best model and Evaluate on test set
 # -------------------------------------------------------------------
+best_ckpt_path = os.path.join(run_dir, "checkpoints", "best_model.pt")
+load_checkpoint(best_ckpt_path, model)
+model.to(device)
 model.eval()
-all_test_preds = []
-all_test_labels = []
 
+all_test_preds, all_test_labels = [], []
 with torch.no_grad():
     for images, labels in test_loader:
         images = images.to(device)
         labels = labels.squeeze(1).to(device).long()
-
-        outputs = model(images)
-        _, preds = torch.max(outputs, 1)
+        _, preds = torch.max(model(images), 1)
         all_test_preds.extend(preds.cpu().numpy())
         all_test_labels.extend(labels.cpu().numpy())
 
