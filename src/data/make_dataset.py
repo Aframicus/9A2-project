@@ -7,6 +7,8 @@ import torch.utils.data as data
 from medmnist import INFO
 from torchvision import transforms
 
+from src.utils import load_config, set_seed
+
 # Constants
 DATA_FLAG = "pneumoniamnist"
 DEFAULT_BATCH_SIZE = 128
@@ -73,13 +75,17 @@ def save_training_class_distribution_plot(train_labels, output_path="class_distr
 
 
 def main():
+    cfg = load_config()
+    set_seed(cfg["seed"])
+    batch_size = cfg["data"]["batch_size"]
+
     print("---------------------- Import, preprocess and load data ----------------------")
     print("Loading the PneumoniaMNIST splits")
 
     train_images, train_labels, val_images, val_labels, test_images, test_labels = load_pneumonia_mnist_arrays()
     print("Raw data loaded successfully!")
 
-    train_loader, val_loader, test_loader = load_pneumonia_mnist_loaders()
+    train_loader, val_loader, test_loader = load_pneumonia_mnist_loaders(batch_size=batch_size)
     print("Transformed data loaded successfully!")
 
     save_training_class_distribution_plot(train_labels)

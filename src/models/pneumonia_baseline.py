@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,6 +16,13 @@ if str(PROJECT_ROOT) not in sys.path:
 	sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.data.make_dataset import load_pneumonia_mnist_arrays
+from src.utils import load_config, set_seed
+
+cfg = load_config()
+set_seed(cfg["seed"])
+outputs_dir = PROJECT_ROOT / cfg["paths"]["outputs"]
+os.makedirs(outputs_dir, exist_ok=True)
+knn_cfg = cfg["knn"]
 
 train_images, train_labels, val_images, val_labels, test_images, test_labels = load_pneumonia_mnist_arrays()
 print("---------------------- Load data ----------------------")
@@ -28,28 +36,29 @@ y_val = np.asarray(val_labels).reshape(-1)
 y_test = np.asarray(test_labels).reshape(-1)
 
 print("---------------------- Determining hyperparameters for KNN: -----------------------")
-model = KNeighborsClassifier()
-k_values = list(range(1, 31))  # From 1 to 30
+k_min, k_max = knn_cfg["k_range"]
+k_values = list(range(k_min, k_max + 1))  # From k_min to k_max (inclusive)
 hyperparameter_space = {
     'knn__n_neighbors': k_values,
-    'knn__weights': ['uniform', 'distance'],
-    'knn__metric': ['euclidean', 'manhattan', 'minkowski']
+    'knn__weights': knn_cfg["weights"],
+    'knn__metric': knn_cfg["metrics"]
 }
 
 pipe = Pipeline([
-    ('pca', PCA(n_components=50)), # Reduce dimensionality to 50 components instead of 784
+    ('pca', PCA(n_components=knn_cfg["pca_components"],
+        random_state=cfg["seed"])), # Reduce dimensionality to 50 components instead of 784
     ('knn', KNeighborsClassifier())
 ])
 
 gs = GridSearchCV(pipe, param_grid=hyperparameter_space,
-                  scoring='accuracy', cv=3, n_jobs=-1, refit=True)
+                  scoring='accuracy', cv=knn_cfg["cv_folds"], n_jobs=-1, refit=True)
 
 gs.fit(X_train, y_train)
 
 print("Best hyperparameters: ", gs.best_params_)
 print("Mean CV accuracy of best hyperparameters: ", gs.best_score_)
 
-# ---------------------- LOSS-curve (1 - validation accuracy) vs k ----------------------
+print(" ---------------------- LOSS-curve (1 - validation accuracy) vs k ----------------------")
 results_df = pd.DataFrame(gs.cv_results_)
 
 # Filter results for the best weights and metric
@@ -73,8 +82,10 @@ plt.ylabel("Loss (1 - validation accuracy)")
 plt.title("KNN validation loss vs k")
 plt.grid(True)
 plt.tight_layout()
-plt.savefig(PROJECT_ROOT / "src" / "visualisation" / "knn_validation_loss.png", dpi=200, bbox_inches="tight")
+plot_path = os.path.join(outputs_dir, "knn_validation_loss.png")
+plt.savefig(plot_path, dpi=200, bbox_inches="tight")
 plt.show()
+print(f"Validation loss vs k plot saved to: {plot_path}")
 
 print("---------------------- Train model ----------------------")
 model = gs.best_estimator_
