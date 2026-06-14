@@ -31,13 +31,13 @@ print("---------------------- Determining hyperparameters for KNN: -------------
 model = KNeighborsClassifier()
 k_values = list(range(1, 31))  # From 1 to 30
 hyperparameter_space = {
-	'n_neighbors': k_values,
-	'weights': ['uniform', 'distance'],
-	'metric': ['euclidean', 'manhattan', 'minkowski']
+    'knn__n_neighbors': k_values,
+    'knn__weights': ['uniform', 'distance'],
+    'knn__metric': ['euclidean', 'manhattan', 'minkowski']
 }
 
 pipe = Pipeline([
-    ('pca', PCA(n_components=50)),
+    ('pca', PCA(n_components=50)), # Reduce dimensionality to 50 components instead of 784
     ('knn', KNeighborsClassifier())
 ])
 
@@ -52,7 +52,7 @@ print("Mean CV accuracy of best hyperparameters: ", gs.best_score_)
 # ---------------------- LOSS-curve (1 - validation accuracy) vs k ----------------------
 results_df = pd.DataFrame(gs.cv_results_)
 
-# We use the best weights/metrics from GridSearch, we only vary k
+# Filter results for the best weights and metric
 best_weights = gs.best_params_['knn__weights']
 best_metric  = gs.best_params_['knn__metric']
 
