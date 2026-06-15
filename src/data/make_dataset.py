@@ -7,7 +7,7 @@ import torch.utils.data as data
 from medmnist import INFO
 from torchvision import transforms
 
-from src.utils import load_config, set_seed
+from src.utils.py import load_config, set_seed
 
 # Constants
 DATA_FLAG = "pneumoniamnist"

@@ -1,16 +1,17 @@
 #!/bin/bash
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
 #SBATCH --job-name=deeper_deepLearning
-#SBATCH --partition=rome
-#SBATCH --time=01:00:00
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
-#SBATCH --mem=2G
-#SBATCH --output=%x-%j.out 
+#SBATCH --cpus-per-task=9
+#SBATCH --time=00:05:00
+#SBATCH --output=%x-%j.out
 
 module purge
-module load 2024
-module load Python/3.12.3-GCCcore-13.3.0
+module load 2025
+module load Python-bundle-PyPI/2025.04-GCCcore-14.2.0
+module load CUDA/12.9.1
 
 source ~/venv/bin/activate
-cd ~/9A2-project/src/models
-python -u deeper_deepLearning.py
+cd $HOME/9A2-project
+python -u src/models/deeper_deepLearning.py
