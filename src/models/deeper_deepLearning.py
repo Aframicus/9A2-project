@@ -299,7 +299,7 @@ print("Classification Report:\n", classification_report(all_test_labels, all_tes
 print("Confusion Matrix:\n", confusion_matrix(all_test_labels, all_test_preds))
 
 # -------------------------------------------------------------------
-# Save model for later usages such as predictions with new datasets
+# Save model for later usages such as predictions with new dataset
 # -------------------------------------------------------------------
 model_save_path = Path(run_dir) / "pneumonia_deeper_cnn.pth"
 torch.save(model.state_dict(), model_save_path)  
