@@ -59,7 +59,7 @@ pipe = Pipeline([
 ])
 
 gs = GridSearchCV(pipe, param_grid=hyperparameter_space,
-                  scoring='accuracy', cv=KNN_CV_FOLDS, n_jobs=-1, refit=True)
+                  scoring='accuracy', cv=KNN_CV_FOLDS, n_jobs=1, refit=True)
 
 gs.fit(X_train, y_train)
 

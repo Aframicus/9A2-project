@@ -1,0 +1,7 @@
+---------------------- Load data ----------------------
+---------------------- Determining hyperparameters for KNN: -----------------------
+Traceback (most recent call last):
+  File "/gpfs/home5/scur0318/9A2-project/src/models/pneumonia_baseline.py", line 61, in <module>
+    gs = GridSearchCV(pipe, param_grid=hyperparameter_space,
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: GridSearchCV.__init__() got an unexpected keyword argument 'random_state'

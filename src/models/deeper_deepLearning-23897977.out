@@ -1,0 +1,29 @@
+Using device: cuda
+Experiment directory: experiments/run_001
+---------------------- Hyperparameter search (DeeperCNN) ----------------------
+Try lr=0.0001, weight_decay=0.0
+   -> best val accuracy during search: 0.9599
+Try lr=0.0001, weight_decay=0.0001
+   -> best val accuracy during search: 0.9599
+Try lr=0.0001, weight_decay=0.001
+   -> best val accuracy during search: 0.9599
+Try lr=0.0005, weight_decay=0.0
+   -> best val accuracy during search: 0.9695
+Try lr=0.0005, weight_decay=0.0001
+   -> best val accuracy during search: 0.9733
+Try lr=0.0005, weight_decay=0.001
+   -> best val accuracy during search: 0.9714
+Try lr=0.001, weight_decay=0.0
+   -> best val accuracy during search: 0.9771
+Try lr=0.001, weight_decay=0.0001
+   -> best val accuracy during search: 0.9714
+Try lr=0.001, weight_decay=0.001
+   -> best val accuracy during search: 0.9714
+Best hyperparameters: {'lr': 0.001, 'weight_decay': 0.0}
+Best validation accuracy (search): 0.9770992366412213
+Train final model with lr=0.001, weight_decay=0.0
+Epoch [1/10] Train Loss: 0.2660, Train Acc: 0.8985 | Val Loss: 1.3615, Val Acc: 0.7424
+Traceback (most recent call last):
+  File "/gpfs/home5/scur0318/9A2-project/src/models/deeper_deepLearning.py", line 231, in <module>
+    save_best_model(run_dir, epoch, model, best_val_acc)
+TypeError: save_best_model() missing 4 required positional arguments: 'train_losses', 'val_losses', 'train_accuracies', and 'val_accuracies'

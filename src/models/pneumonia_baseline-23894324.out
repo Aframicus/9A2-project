@@ -1,0 +1,4 @@
+---------------------- Load data ----------------------
+---------------------- Determining hyperparameters for KNN: -----------------------
+/var/spool/slurm/slurmd/job23894324/slurm_script: line 16: 2861352 Killed                  python -u pneumonia_baseline.py
+[2026-06-15T22:21:08.452] error: Detected 1 oom_kill event in StepId=23894324.batch. Some of the step tasks have been OOM Killed.
