@@ -19,29 +19,33 @@ from src.data.make_dataset import load_pneumonia_mnist_loaders
 from src.utils import load_config, set_seed, get_experiment_dir, save_checkpoint, save_best_model, load_checkpoint
 
 # -------------------------------------------------------------------
-# Reproducibility & device
+# Constants
 # -------------------------------------------------------------------
-cfg = load_config()
-set_seed(cfg["seed"])
+SEED = 42
+BATCH_SIZE = 128
+NUM_EPOCHS = 10
+NUM_EPOCHS_SEARCH = 5
+CHECKPOINT_EVERY = 1
+EXPERIMENTS_DIR = "experiments/"
+LR_VALUES = [0.0001, 0.0005, 0.001]
+WEIGHT_DECAY_VALUES = [0.0, 0.0001, 0.001]
+
+# -------------------------------------------------------------------
+# Set random seed for reproducibility
+# -------------------------------------------------------------------
+set_seed(SEED)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
-
-search_cfg          = cfg["hyperparameter_search"]
-lr_values           = search_cfg["lr_values"]
-weight_decay_values = search_cfg["weight_decay_values"]
-num_epochs_search   = cfg["training"]["num_epochs_search"]
-
 # -------------------------------------------------------------------
 # Experiment directory
 # -------------------------------------------------------------------
 # change run_name per experiment
-run_dir = get_experiment_dir(cfg["paths"]["experiments"], run_name="run_001")
+run_dir = get_experiment_dir(EXPERIMENTS_DIR, run_name="run_001")
 print(f"Experiment directory: {run_dir}")
 # -------------------------------------------------------------------
 # Load data
 # -------------------------------------------------------------------
-batch_size = cfg["data"]["batch_size"]
-train_loader, val_loader, test_loader = load_pneumonia_mnist_loaders(batch_size=batch_size)
+train_loader, val_loader, test_loader = load_pneumonia_mnist_loaders(batch_size=BATCH_SIZE)
 
 # -------------------------------------------------------------------
 # Deeper CNN architecture
@@ -138,10 +142,10 @@ best_val_acc_overall = 0.0
 best_params = None
 
 print("---------------------- Hyperparameter search (DeeperCNN) ----------------------")
-for lr in lr_values:
-    for wd in weight_decay_values:
+for lr in LR_VALUES:
+    for wd in WEIGHT_DECAY_VALUES:
         print(f"Try lr={lr}, weight_decay={wd}")
-        val_acc = train_for_search(lr, wd, num_epochs_search=5)
+        val_acc = train_for_search(lr, wd, num_epochs_search=NUM_EPOCHS_SEARCH)
         print(f"   -> best val accuracy during search: {val_acc:.4f}")
         if val_acc > best_val_acc_overall:
             best_val_acc_overall = val_acc
@@ -166,8 +170,6 @@ print(f"Train final model with lr={best_params['lr']}, weight_decay={best_params
 # -------------------------------------------------------------------
 # Complete training with chosen hyperparameters
 # -------------------------------------------------------------------
-num_epochs       = cfg["training"]["num_epochs"]                   
-checkpoint_every = cfg["training"]["checkpoint_every_n_epochs"]    
 
 train_losses, val_losses= [], []
 train_accuracies, val_accuracies = [], []
@@ -175,7 +177,7 @@ best_val_acc = 0.0
 
 print(f"Train final model with lr={best_params['lr']}, weight_decay={best_params['weight_decay']}")
 
-for epoch in range(1, num_epochs + 1):
+for epoch in range(1, NUM_EPOCHS + 1):
     # ── Train ──
     model.train()
     running_loss = 0.0
@@ -222,7 +224,7 @@ for epoch in range(1, num_epochs + 1):
     val_losses.append(epoch_val_loss)
     val_accuracies.append(epoch_val_acc)
 
-    print(f"Epoch [{epoch+1}/{num_epochs}] "
+    print(f"Epoch [{epoch+1}/{NUM_EPOCHS}] "
           f"Train Loss: {epoch_train_loss:.4f}, Train Acc: {epoch_train_acc:.4f} | "
           f"Val Loss: {epoch_val_loss:.4f}, Val Acc: {epoch_val_acc:.4f}")
 
@@ -231,7 +233,7 @@ for epoch in range(1, num_epochs + 1):
         best_val_acc = epoch_val_acc
         save_best_model(run_dir, epoch, model, best_val_acc)
 # periodic checkpointing
-    if epoch % checkpoint_every == 0:
+    if epoch % CHECKPOINT_EVERY == 0:
         save_checkpoint(
             run_dir, epoch, model, optimizer,
             train_losses, val_losses, train_accuracies, val_accuracies,
@@ -240,8 +242,8 @@ for epoch in range(1, num_epochs + 1):
 # LOSS-plot (training & validation)
 # -------------------------------------------------------------------
 plt.figure(figsize=(6, 4))
-plt.plot(range(1, num_epochs + 1), train_losses, marker='o', label="Train loss")
-plt.plot(range(1, num_epochs + 1), val_losses, marker='o', label="Val loss")
+plt.plot(range(1, NUM_EPOCHS + 1), train_losses, marker='o', label="Train loss")
+plt.plot(range(1, NUM_EPOCHS + 1), val_losses, marker='o', label="Val loss")
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.title("Deeper CNN - Training/Validation Loss")
