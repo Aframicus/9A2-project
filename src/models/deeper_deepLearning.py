@@ -1,10 +1,11 @@
 from pathlib import Path
 import sys
-import os
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import logging
+from time import time
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 
@@ -16,32 +17,37 @@ if str(PROJECT_ROOT) not in sys.path:
 # Project imports
 # -------------------------------------------------------------------
 from src.data.make_dataset import load_pneumonia_mnist_loaders
-from src.utils import load_config, set_seed, get_experiment_dir, save_checkpoint, save_best_model, load_checkpoint
+from src.utils import set_seed, get_experiment_dir, save_checkpoint, save_best_model, load_checkpoint
 
 # -------------------------------------------------------------------
-# Reproducibility & device
+# Constants
 # -------------------------------------------------------------------
-cfg = load_config()
-set_seed(cfg["seed"])
+SEED = 42
+BATCH_SIZE = 128
+NUM_EPOCHS = 10
+NUM_EPOCHS_SEARCH = 5
+CHECKPOINT_EVERY = 1
+EXPERIMENTS_DIR = "experiments/"
+LR_VALUES = [0.0001, 0.0005, 0.001]
+WEIGHT_DECAY_VALUES = [0.0, 0.0001, 0.001]
+EARLY_STOPPING_PATIENCE = 3
+
+# -------------------------------------------------------------------
+# Set random seed for reproducibility
+# -------------------------------------------------------------------
+set_seed(SEED)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
-
-search_cfg          = cfg["hyperparameter_search"]
-lr_values           = search_cfg["lr_values"]
-weight_decay_values = search_cfg["weight_decay_values"]
-num_epochs_search   = cfg["training"]["num_epochs_search"]
-
 # -------------------------------------------------------------------
 # Experiment directory
 # -------------------------------------------------------------------
 # change run_name per experiment
-run_dir = get_experiment_dir(cfg["paths"]["experiments"], run_name="run_001")
+run_dir = get_experiment_dir(EXPERIMENTS_DIR, run_name="run_001")
 print(f"Experiment directory: {run_dir}")
 # -------------------------------------------------------------------
 # Load data
 # -------------------------------------------------------------------
-batch_size = cfg["data"]["batch_size"]
-train_loader, val_loader, test_loader = load_pneumonia_mnist_loaders(batch_size=batch_size)
+train_loader, val_loader, test_loader = load_pneumonia_mnist_loaders(batch_size=BATCH_SIZE)
 
 # -------------------------------------------------------------------
 # Deeper CNN architecture
@@ -92,16 +98,13 @@ class DeeperCNN(nn.Module): #creating a new neural network type from the nn modu
     #pushes the image through multiple layers and at the end it is flattend to a tensor. At the self.fc(x) it is passed through a fully connected layer. Then it is returned as a logits.
 
 # -------------------------------------------------------------------
-# Hyperparameter search
+# Hyperparameter search for learning rate and weight decay
 # -------------------------------------------------------------------
-def train_for_search(lr, weight_decay, num_epochs_search=5):
-    """
-    Train a DeeperCNN with a given lr and weight_decay for a limited number of 
-    epochs and return the best validation accuracy.
-    """
+def train_for_search(lr, weight_decay, num_epochs_search=NUM_EPOCHS_SEARCH):
+    set_seed(SEED)  # Ensure reproducibility for each hyperparameter combination
     model = DeeperCNN(num_classes=2).to(device) #Creates a new model
     criterion = nn.CrossEntropyLoss() #the criteria is set on CrossEntropyLoss
-    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay) #These are the optemizer values put in the new model.
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay) #These are the optimizer values put in the new model.
     best_val_acc = 0.0
 
     for epoch in range(num_epochs_search):
@@ -138,10 +141,10 @@ best_val_acc_overall = 0.0
 best_params = None
 
 print("---------------------- Hyperparameter search (DeeperCNN) ----------------------")
-for lr in lr_values:
-    for wd in weight_decay_values:
+for lr in LR_VALUES:
+    for wd in WEIGHT_DECAY_VALUES:
         print(f"Try lr={lr}, weight_decay={wd}")
-        val_acc = train_for_search(lr, wd, num_epochs_search=5)
+        val_acc = train_for_search(lr, wd, num_epochs_search=NUM_EPOCHS_SEARCH)
         print(f"   -> best val accuracy during search: {val_acc:.4f}")
         if val_acc > best_val_acc_overall:
             best_val_acc_overall = val_acc
@@ -153,6 +156,7 @@ print("Best validation accuracy (search):", best_val_acc_overall)
 # -------------------------------------------------------------------
 # Instantiate final model, loss, optimizer with best hyperparameters
 # -------------------------------------------------------------------
+set_seed(SEED)  # Ensure reproducibility for final training
 model = DeeperCNN(num_classes=2).to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(
@@ -166,16 +170,12 @@ print(f"Train final model with lr={best_params['lr']}, weight_decay={best_params
 # -------------------------------------------------------------------
 # Complete training with chosen hyperparameters
 # -------------------------------------------------------------------
-num_epochs       = cfg["training"]["num_epochs"]                   
-checkpoint_every = cfg["training"]["checkpoint_every_n_epochs"]    
 
 train_losses, val_losses= [], []
 train_accuracies, val_accuracies = [], []
 best_val_acc = 0.0
 
-print(f"Train final model with lr={best_params['lr']}, weight_decay={best_params['weight_decay']}")
-
-for epoch in range(1, num_epochs + 1):
+for epoch in range(1, NUM_EPOCHS + 1):
     # ── Train ──
     model.train()
     running_loss = 0.0
@@ -222,7 +222,7 @@ for epoch in range(1, num_epochs + 1):
     val_losses.append(epoch_val_loss)
     val_accuracies.append(epoch_val_acc)
 
-    print(f"Epoch [{epoch+1}/{num_epochs}] "
+    print(f"Epoch [{epoch}/{NUM_EPOCHS}] "
           f"Train Loss: {epoch_train_loss:.4f}, Train Acc: {epoch_train_acc:.4f} | "
           f"Val Loss: {epoch_val_loss:.4f}, Val Acc: {epoch_val_acc:.4f}")
 
@@ -231,7 +231,7 @@ for epoch in range(1, num_epochs + 1):
         best_val_acc = epoch_val_acc
         save_best_model(run_dir, epoch, model, best_val_acc)
 # periodic checkpointing
-    if epoch % checkpoint_every == 0:
+    if epoch % CHECKPOINT_EVERY == 0:
         save_checkpoint(
             run_dir, epoch, model, optimizer,
             train_losses, val_losses, train_accuracies, val_accuracies,
@@ -239,22 +239,33 @@ for epoch in range(1, num_epochs + 1):
 # -------------------------------------------------------------------
 # LOSS-plot (training & validation)
 # -------------------------------------------------------------------
-plt.figure(figsize=(6, 4))
-plt.plot(range(1, num_epochs + 1), train_losses, marker='o', label="Train loss")
-plt.plot(range(1, num_epochs + 1), val_losses, marker='o', label="Val loss")
-plt.xlabel("Epoch")
-plt.ylabel("Loss")
-plt.title("Deeper CNN - Training/Validation Loss")
-plt.legend()
-plt.grid(True)
+epochs_ran = len(train_losses)
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+ 
+axes[0].plot(range(1, epochs_ran + 1), train_losses,  marker='o', label="Train loss")
+axes[0].plot(range(1, epochs_ran + 1), val_losses,    marker='o', label="Val loss")
+axes[0].set_xlabel("Epoch")
+axes[0].set_ylabel("Loss")
+axes[0].set_title("Deeper CNN — Loss")
+axes[0].legend()
+axes[0].grid(True)
+
+axes[1].plot(range(1, epochs_ran + 1), train_accuracies, marker='o', label="Train acc")
+axes[1].plot(range(1, epochs_ran + 1), val_accuracies,   marker='o', label="Val acc")
+axes[1].set_xlabel("Epoch")
+axes[1].set_ylabel("Accuracy")
+axes[1].set_title("Deeper CNN — Accuracy")
+axes[1].legend()
+axes[1].grid(True)
+ 
 plt.tight_layout()
-plt.savefig("deeper_cnn_loss.png", dpi=200, bbox_inches="tight")
+plt.savefig(Path(run_dir) / "deeper_cnn_curves.png", dpi=200, bbox_inches="tight")
 plt.show()
 
 # -------------------------------------------------------------------
 # Load best model and Evaluate on test set
 # -------------------------------------------------------------------
-best_ckpt_path = os.path.join(run_dir, "checkpoints", "best_model.pt")
+best_ckpt_path = Path(run_dir) / "checkpoints" / "best_model.pt"
 load_checkpoint(best_ckpt_path, model)
 model.to(device)
 model.eval()
@@ -275,5 +286,6 @@ print("Confusion Matrix:\n", confusion_matrix(all_test_labels, all_test_preds))
 # -------------------------------------------------------------------
 # Save model for later usages such as predictions with new datasets
 # -------------------------------------------------------------------
-torch.save(model.state_dict(), "pneumonia_deeper_cnn.pth")
+model_save_path = Path(run_dir) / "pneumonia_deeper_cnn.pth"
+torch.save(model.state_dict(), model_save_path)  
 print("Saved model to pneumonia_deeper_cnn.pth")
