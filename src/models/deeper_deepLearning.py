@@ -30,7 +30,6 @@ CHECKPOINT_EVERY = 1
 EXPERIMENTS_DIR = "experiments/"
 LR_VALUES = [0.0001, 0.0005, 0.001]
 WEIGHT_DECAY_VALUES = [0.0, 0.0001, 0.001]
-EARLY_STOPPING_PATIENCE = 3
 
 # -------------------------------------------------------------------
 # Set random seed for reproducibility
