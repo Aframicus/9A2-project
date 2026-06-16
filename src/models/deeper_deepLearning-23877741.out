@@ -1,8 +1,0 @@
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-    import torch; print('GPU available?', torch.cuda.is_available())
-    ^^^^^^^^^^^^
-ModuleNotFoundError: No module named 'torch'
-srun: error: gcn45: task 0: Exited with exit code 1
-srun: Terminating StepId=23877741.0
-python: can't open file '/gpfs/home5/scur0318/9A2-project/9A2-project/src/models/deeper_deepLearning.py': [Errno 2] No such file or directory
