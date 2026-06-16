@@ -4,9 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import logging
-from time import time
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, precision_recall_curve, average_precision_score
 import matplotlib.pyplot as plt
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -30,6 +28,7 @@ CHECKPOINT_EVERY = 1
 EXPERIMENTS_DIR = "experiments/"
 LR_VALUES = [0.0001, 0.0005, 0.001]
 WEIGHT_DECAY_VALUES = [0.0, 0.0001, 0.001]
+VISUALIZE_DIR = PROJECT_ROOT / "src" / "visualisation"
 
 # -------------------------------------------------------------------
 # Set random seed for reproducibility
@@ -46,8 +45,8 @@ print(f"Experiment directory: {run_dir}")
 # -------------------------------------------------------------------
 # Load data
 # -------------------------------------------------------------------
+print("---------------------- Load data ----------------------")
 train_loader, val_loader, test_loader = load_pneumonia_mnist_loaders(batch_size=BATCH_SIZE)
-
 # -------------------------------------------------------------------
 # Deeper CNN architecture
 # -------------------------------------------------------------------
@@ -252,7 +251,7 @@ for epoch in range(1, NUM_EPOCHS + 1):
             val_accuracies,
         )
 # -------------------------------------------------------------------
-# LOSS-plot (training & validation)
+# FIGURE 1: LOSS-plot & Accuracy plot (training & validation)
 # -------------------------------------------------------------------
 epochs_ran = len(train_losses)
 fig, axes = plt.subplots(1, 2, figsize=(12, 4))
@@ -274,7 +273,7 @@ axes[1].legend()
 axes[1].grid(True)
  
 plt.tight_layout()
-plt.savefig(Path(run_dir) / "deeper_cnn_curves.png", dpi=200, bbox_inches="tight")
+plt.savefig(VISUALIZE_DIR / "deeper_cnn_curves.png", dpi=200, bbox_inches="tight")
 plt.show()
 
 # -------------------------------------------------------------------
@@ -285,18 +284,61 @@ load_checkpoint(best_ckpt_path, model)
 model.to(device)
 model.eval()
 
-all_test_preds, all_test_labels = [], []
+all_test_preds, all_test_labels, all_test_probs = [], [], []
 with torch.no_grad():
     for images, labels in test_loader:
         images = images.to(device)
         labels = labels.squeeze(1).to(device).long()
-        _, preds = torch.max(model(images), 1)
+        outputs = model(images)
+        probs = torch.softmax(outputs, dim=1)[:, 1]  # Probability of class '1' (Pneumonia)
+        _, preds = torch.max(outputs, 1)
         all_test_preds.extend(preds.cpu().numpy())
         all_test_labels.extend(labels.cpu().numpy())
+        all_test_probs.extend(probs.cpu().numpy())
 
 print("Test Accuracy:", accuracy_score(all_test_labels, all_test_preds))
 print("Classification Report:\n", classification_report(all_test_labels, all_test_preds, digits=4))
-print("Confusion Matrix:\n", confusion_matrix(all_test_labels, all_test_preds))
+#print("Confusion Matrix:\n", confusion_matrix(all_test_labels, all_test_preds))
+
+# -------------------------------------------------------------------
+# FIGURE 2: Confusion Matrix
+# -------------------------------------------------------------------
+cm = confusion_matrix(all_test_labels, all_test_preds)
+plt.figure(figsize=(5, 4))
+plt.imshow(cm, interpolation='nearest', cmap='Blues')
+plt.colorbar()
+
+# Annotate cells
+for i in range(cm.shape[0]):
+    for j in range(cm.shape[1]):
+        plt.text(j, i, str(cm[i, j]), ha='center', va='center', fontsize=12)
+
+plt.xticks([0, 1], ["Normal", "Pneumonia"])
+plt.yticks([0, 1], ["Normal", "Pneumonia"])
+plt.xlabel("Predicted Label")
+plt.ylabel("True Label")
+plt.title("Deeper CNN — Confusion Matrix")
+plt.tight_layout()
+plt.savefig(VISUALIZE_DIR / "deeper_cnn_confusion_matrix.png", dpi=200, bbox_inches="tight")
+plt.show()
+
+# -------------------------------------------------------------------
+# FIGURE 3 — Precision-Recall Curve
+# -------------------------------------------------------------------
+precision, recall, _ = precision_recall_curve(all_test_labels, all_test_probs)
+avg_precision = average_precision_score(all_test_labels, all_test_probs)
+
+plt.figure(figsize=(6, 4))
+plt.plot(recall, precision, marker='.', label=f"AP = {avg_precision:.4f}")
+plt.xlabel("Recall")
+plt.ylabel("Precision")
+plt.title("Deeper CNN — Precision-Recall Curve")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig(VISUALIZE_DIR / "deeper_cnn_precision_recall.png", dpi=200, bbox_inches="tight")
+plt.show()
+
 
 # -------------------------------------------------------------------
 # Save model for later usages such as predictions with new dataset
