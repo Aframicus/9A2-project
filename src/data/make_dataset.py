@@ -61,14 +61,25 @@ def load_pneumonia_mnist_loaders(batch_size=DEFAULT_BATCH_SIZE, download=True):
     return train_loader, val_loader, test_loader
 
 def save_training_class_distribution_plot(train_labels, output_path="class_distribution_train.png"):
-    """Save a class distribution plot for the training labels."""
+    """Save a class distribution plot for the training labels (0 = no pneumonia, 1 = pneumonia)."""
     labels = np.asarray(train_labels).squeeze()
 
     plt.figure(figsize=(8, 5))
-    plt.title("Class Distribution in the Training Set")
+    plt.title("Class Distribution (0 = no pneumonia, 1 = pneumonia)")
     plt.xlabel("Class")
     plt.ylabel("Frequency")
-    plt.hist(labels, bins=np.arange(labels.min() - 0.5, labels.max() + 1.5, 1), edgecolor="black")
+    plt.hist(
+        labels, bins=np.arange(labels.min() - 0.5, labels.max() + 1.5, 1), edgecolor="black")
+
+    classes, counts = np.unique(labels, return_counts=True)
+    total = counts.sum()
+
+    for c, count in zip(classes, counts):
+        pct = 100 * count / total
+        plt.text(
+            c,
+            count,
+            f"{int(count)}\n", ha="center", va="bottom")
     plt.savefig(output_path, dpi=200, bbox_inches="tight")
     plt.close()
 
