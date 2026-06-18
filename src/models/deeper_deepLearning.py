@@ -227,29 +227,11 @@ for epoch in range(1, NUM_EPOCHS + 1):
     # if validation accuracy improved, save best model checkpoint
     if epoch_val_acc > best_val_acc:
         best_val_acc = epoch_val_acc
-        save_best_model(
-            run_dir,
-            epoch,
-            model,
-            optimizer,
-            train_losses,
-            val_losses,
-            train_accuracies,
-            val_accuracies,
-        )
+        save_best_model(run_dir, epoch, model, optimizer, train_losses, val_losses, train_accuracies, val_accuracies,)
 
     # periodic checkpointing
     if epoch % CHECKPOINT_EVERY == 0:
-        save_checkpoint(
-            run_dir,
-            epoch,
-            model,
-            optimizer,
-            train_losses,
-            val_losses,
-            train_accuracies,
-            val_accuracies,
-        )
+        save_checkpoint(run_dir, epoch, model, optimizer, train_losses, val_losses, train_accuracies, val_accuracies,)
 # -------------------------------------------------------------------
 # FIGURE 1: LOSS-plot & Accuracy plot (training & validation)
 # -------------------------------------------------------------------

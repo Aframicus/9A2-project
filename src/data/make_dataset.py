@@ -76,10 +76,7 @@ def save_training_class_distribution_plot(train_labels, output_path="class_distr
 
     for c, count in zip(classes, counts):
         pct = 100 * count / total
-        plt.text(
-            c,
-            count,
-            f"{int(count)}\n", ha="center", va="bottom")
+        plt.text(c, count, f"{int(count)}\n", ha="center", va="bottom")
     plt.savefig(output_path, dpi=200, bbox_inches="tight")
     plt.close()
 
@@ -97,17 +94,7 @@ def main():
 
     save_training_class_distribution_plot(train_labels)
 
-    return (
-        train_images,
-        train_labels,
-        val_images,
-        val_labels,
-        test_images,
-        test_labels,
-        train_loader,
-        val_loader,
-        test_loader,
-    )
+    return (train_images, train_labels, val_images, val_labels, test_images, test_labels, train_loader, val_loader,test_loader,)
 
 
 if __name__ == "__main__":
