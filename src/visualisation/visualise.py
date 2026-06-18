@@ -29,24 +29,22 @@ def show_samples(images, labels=None, num_samples=16):
 
 # Save a class distribution plot for the training labels
 def save_training_class_distribution_plot(labels, split_name, output_path=None):
-    """Save a class distribution plot for the labels of a given split."""
     labels = np.asarray(labels).squeeze()
     
-    output_dir = PROJECT_ROOT / "src" / "visualisation"
-    output_path = output_dir / f"class_distribution_{split_name}.png"
+    output_dir = PROJECT_ROOT / "src" / "visualisation" / f"class_distribution_{split_name}.png"
 
     plt.figure(figsize=(8, 5))
     plt.title(f"Class Distribution in the {split_name.capitalize()} Set")
     plt.xlabel("Class (0 = no pneumonia, 1 = pneumonia)")
     plt.ylabel("Frequency")
 
-    n, bins, patches = plt.hist(labels, bins=2, edgecolor="black")
+    n, bins = plt.hist(labels, bins=2, edgecolor="black")
 
     for count, left_edge, right_edge in zip(n, bins[:-1], bins[1:]):
         center = (left_edge + right_edge) / 2.0
         plt.text(center, count, f"{int(count)}", ha="center", va="bottom")
 
-    plt.savefig(output_path, dpi=200, bbox_inches="tight")
+    plt.savefig(output_dir, dpi=200, bbox_inches="tight")
     plt.close()
 
 def main():
